@@ -26,7 +26,7 @@ class Cdm:
 
     def open_session(self, init_data_b64, device, raw_init_data = None, offline=False):
         self.logger.debug("open_session(init_data_b64={}, device={}".format(init_data_b64, device))
-        self.logger.info("opening new cdm session")
+        self.logger.debug("opening new cdm session")
         if device.session_id_type == 'android':
             # format: 16 random hexdigits, 2 digit counter, 14 0s
             rand_ascii = ''.join(random.choice('ABCDEF0123456789') for _ in range(16))
@@ -55,7 +55,7 @@ class Cdm:
             self.logger.error("unable to parse init data")
             return 1
         self.sessions[session_id] = new_session
-        self.logger.info("session opened and init data parsed successfully")
+        self.logger.debug("session opened and init data parsed successfully")
         return session_id
 
     def _parse_init_data(self, init_data_b64):
@@ -77,18 +77,18 @@ class Cdm:
 
     def close_session(self, session_id):
         self.logger.debug("close_session(session_id={})".format(session_id))
-        self.logger.info("closing cdm session")
+        self.logger.debug("closing cdm session")
         if session_id in self.sessions:
             self.sessions.pop(session_id)
-            self.logger.info("cdm session closed")
+            self.logger.debug("cdm session closed")
             return 0
         else:
-            self.logger.info("session {} not found".format(session_id))
+            self.logger.error("session {} not found".format(session_id))
             return 1
 
     def set_service_certificate(self, session_id, cert_b64):
         self.logger.debug("set_service_certificate(session_id={}, cert={})".format(session_id, cert_b64))
-        self.logger.info("setting service certificate")
+        self.logger.debug("setting service certificate")
 
         if session_id not in self.sessions:
             self.logger.error("session id doesn't exist")
@@ -131,7 +131,7 @@ class Cdm:
 
     def get_license_request(self, session_id):
         self.logger.debug("get_license_request(session_id={})".format(session_id))
-        self.logger.info("getting license request")
+        self.logger.debug("getting license request")
 
         if session_id not in self.sessions:
             self.logger.error("session ID does not exist")
@@ -237,13 +237,13 @@ class Cdm:
         self.logger.debug("license request:")
         for line in text_format.MessageToString(session.license_request).splitlines():
             self.logger.debug(line)
-        self.logger.info("license request created")
+        self.logger.debug("license request created")
         self.logger.debug("license request b64: {}".format(base64.b64encode(license_request.SerializeToString())))
         return license_request.SerializeToString()
 
     def provide_license(self, session_id, license_b64):
         self.logger.debug("provide_license(session_id={}, license_b64={})".format(session_id, license_b64))
-        self.logger.info("decrypting provided license")
+        self.logger.debug("decrypting provided license")
 
         if session_id not in self.sessions:
             self.logger.error("session does not exist")
@@ -321,12 +321,12 @@ class Cdm:
         self.logger.debug("calculated sig: {} actual sig: {}".format(lic_hmac.hexdigest(), binascii.hexlify(license.Signature)))
 
         if lic_hmac.digest() != license.Signature:
-            self.logger.info("license signature doesn't match - writing bin so they can be debugged")
+            self.logger.debug("license signature doesn't match - writing bin so they can be debugged")
             with open("original_lic.bin", "wb") as f:
                 f.write(base64.b64decode(license_b64))
             with open("parsed_lic.bin", "wb") as f:
                 f.write(license.SerializeToString())
-            self.logger.info("continuing anyway")
+            self.logger.debug("continuing anyway")
 
         self.logger.debug("key count: {}".format(len(license.Msg.Key)))
         for key in license.Msg.Key:
@@ -351,7 +351,7 @@ class Cdm:
                 permissions = []
             session.keys.append(Key(key_id, type, Padding.unpad(decrypted_key, 16), permissions))
 
-        self.logger.info("decrypted all keys")
+        self.logger.debug("decrypted all keys")
         return 0
 
     def get_keys(self, session_id):

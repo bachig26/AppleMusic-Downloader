@@ -161,7 +161,7 @@ class AppleMusicClient:
             return args.url
 
         self.content_type = matches.group(1)
-        self.url_name = matches.group(2)
+        self.url_name = unquote(matches.group(2))
         self.url_main_id = matches.group(3)
         self.url_track_id = matches.group(4)
 
@@ -232,7 +232,8 @@ class AppleMusicClient:
             "Connection": "keep-alive",
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-site"
+            "Sec-Fetch-Site": "same-site",
+            "Origin": "https://music.apple.com"
         })
         return self.session
 
@@ -250,6 +251,9 @@ class AppleMusicClient:
         metadata['playback'] = song_assets["URL"]
         metadata['artworkURL'] = song_assets["artworkURL"]
         metadata['license'] = music["hls-key-server-url"]
+
+        if not hasattr(self, 'album_name'):
+            self.album_name = metadata['playlistName']
 
         output_name = toolcfg.filenames.musics_template.format(
             track=metadata['trackNumber'],
@@ -380,7 +384,7 @@ class AppleMusicClient:
 
                 aria2c_infile = os.path.join(toolcfg.folder.temp, 'aria2c_infile.txt')
                 track_fname = os.path.join(track_fname)
-                with open(aria2c_infile, 'w') as fd:
+                with open(aria2c_infile, 'w', encoding='utf-8') as fd:
                     fd.write(aria2c_input)
                 
                 aria2c_opts = [
@@ -524,6 +528,7 @@ class AppleMusicClient:
                     raise Exception("Failed to get album info")
                     
                 self.album_name =  normalize(album_info["data"][0]["attributes"]["name"])
+                logger.info("Album Name: " + self.album_name)
 
                 tracks = album_info["data"][0]["relationships"]["tracks"]["data"]
 
@@ -656,9 +661,9 @@ def unwanted_char(asin):
     return only_ascii.decode("utf-8")
 
 def normalize(outputfile):
-    outputfile = unwanted_char(outputfile)
+    # outputfile = unwanted_char(outputfile)
     outputfile = pathvalidate.sanitize_filename(outputfile)
-    outputfile = unidecode(outputfile)
+    # outputfile = unidecode(outputfile)
     outputfile = re.sub(r'[]!"#$%\'()*+,:;<=>?@\\^_-`|~[]', '', outputfile)
     outputfile = re.sub(r'\.{2,}', '.', outputfile)
 
@@ -674,7 +679,7 @@ if __name__ == "__main__":
     parser.add_argument('url', nargs='?', help='apple music title url')
     parser.add_argument('-t', '--track', help='rip only specified track from album')
     parser.add_argument('-ts', '--track_start', help="rip starting at the track number provided")
-    parser.add_argument('-r', '--region', default='us', choices=['us', 'eu', 'br'], help='Apple Music Region')
+    parser.add_argument('-r', '--region', default='cn', choices=['us', 'eu', 'br', 'cn'], help='Apple Music Region')
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug logging")
     # don't use with music video, bad fps lol
     parser.add_argument("-m4", "--mp4decrypt", dest="mp4_decrypt", action="store_true",

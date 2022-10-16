@@ -1,0 +1,18 @@
+# pycharm
+.idea/
+.DS_Store
+
+__pycharm__/
+*.py[cod]
+*$py.class
+
+#Django stuff
+*.sqlite3
+media/
+
+# database migrations
+*/migrations/*.py
+!*/migrations/__init__.py
+device_client_id_blob
+device_private_key
+cookies/token.txt
